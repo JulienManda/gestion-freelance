@@ -117,7 +117,7 @@ export default function Configuration({ user, setUser }) {
                                 error={errors.nomEntreprise}
                             />
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Field
                                     label="Nom de l'administrateur"
                                     type="text"

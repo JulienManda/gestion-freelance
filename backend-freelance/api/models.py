@@ -7,6 +7,9 @@ class Utilisateur(models.Model):
     mot_de_passe = models.CharField(max_length=255)
     activite = models.CharField(max_length=255, blank=True, null=True, default="Community Management & Design")
     telephone = models.CharField(max_length=20, blank=True, null=True)
+    # True par défaut : les comptes déjà existants restent utilisables.
+    # L'inscription crée le compte avec False jusqu'à la saisie du code.
+    email_verifie = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.nom_entreprise} - {self.nom_admin}"
@@ -71,3 +74,23 @@ class Paiement(models.Model):
 
     def __str__(self):
         return f"Paiement {self.montant} - Facture #{self.facture.id}"
+
+class CodeVerification(models.Model):
+    """Code à 6 chiffres envoyé par email (confirmation d'inscription ou mot de passe oublié).
+    Le code n'est jamais stocké en clair : seulement son empreinte (HMAC)."""
+    PURPOSE_CHOICES = [
+        ('VERIFY', 'Confirmation email'),
+        ('RESET', 'Réinitialisation mot de passe'),
+    ]
+    email = models.EmailField()
+    purpose = models.CharField(max_length=10, choices=PURPOSE_CHOICES)
+    code_hash = models.CharField(max_length=64)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('email', 'purpose')
+
+    def __str__(self):
+        return f"{self.purpose} - {self.email}"

@@ -10,7 +10,7 @@ export default function Pagination({ currentPage, setCurrentPage, totalPages, to
     const last = Math.min(currentPage * itemsPerPage, totalItems);
 
     return (
-        <div className={`flex items-center justify-between px-6 py-4 border-t ${isDarkMode ? 'border-gray-800 bg-gray-800/30' : 'border-gray-100 bg-gray-50/50'}`}>
+        <div className={`flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-4 border-t ${isDarkMode ? 'border-gray-800 bg-gray-800/30' : 'border-gray-100 bg-gray-50/50'}`}>
             <span className="text-sm opacity-60">Affichage de {first} à {last} sur {totalItems}</span>
             <div className="flex gap-2">
                 <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className={buttonClass}><ChevronLeft size={18} /></button>

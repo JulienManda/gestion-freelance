@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Briefcase, FileText, CreditCard,
-  Settings, LogOut, AlertTriangle
+  Settings, LogOut, AlertTriangle, Menu, X
 } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
@@ -11,6 +11,7 @@ import Devis from './pages/Devis';
 import Factures from './pages/Factures';
 import Configuration from './pages/Configuration';
 import Auth from './pages/Auth';
+import { api } from './utils/api';
 
 function MainLayout({ user, setUser, onLogout }) {
   const [clients, setClients] = useState([]);
@@ -18,6 +19,7 @@ function MainLayout({ user, setUser, onLogout }) {
   const [factures, setFactures] = useState([]);
   const [paiements, setPaiements] = useState([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
   const primaryColor = user.primaryColor || '#185e45';
@@ -27,22 +29,22 @@ function MainLayout({ user, setUser, onLogout }) {
     const token = localStorage.getItem('auth_token');
     const headers = token ? { Authorization: `Token ${token}` } : {};
 
-    fetch('http://127.0.0.1:8000/api/clients/', { headers })
+    fetch(api('clients/'), { headers })
       .then(res => res.json())
       .then(data => setClients(data))
       .catch(err => console.error("Erreur chargement clients:", err));
 
-    fetch('http://127.0.0.1:8000/api/devis/', { headers })
+    fetch(api('devis/'), { headers })
       .then(res => res.json())
       .then(data => setDevis(data))
       .catch(err => console.error("Erreur chargement devis:", err));
 
-    fetch('http://127.0.0.1:8000/api/factures/', { headers })
+    fetch(api('factures/'), { headers })
       .then(res => res.json())
       .then(data => setFactures(data))
       .catch(err => console.error("Erreur chargement factures:", err));
 
-    fetch('http://127.0.0.1:8000/api/paiements/', { headers })
+    fetch(api('paiements/'), { headers })
       .then(res => res.json())
       .then(data => setPaiements(data))
       .catch(err => console.error("Erreur chargement paiements:", err));
@@ -50,6 +52,7 @@ function MainLayout({ user, setUser, onLogout }) {
 
   useEffect(() => {
     loadData();
+    setSidebarOpen(false); // ferme le menu mobile après navigation
   }, [location]);
 
   const navClass = ({ isActive }) =>
@@ -70,12 +73,20 @@ function MainLayout({ user, setUser, onLogout }) {
 
   return (
     <div
-      className={`flex h-screen font-sans p-4 gap-4 w-full relative transition-colors duration-300 ${isDarkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-100 text-gray-900'
+      className={`flex h-dvh font-sans p-2 sm:p-4 gap-4 w-full relative transition-colors duration-300 ${isDarkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-100 text-gray-900'
         }`}
     >
-      {/* BARRE LATÉRALE */}
+      {/* FOND SOMBRE DU MENU MOBILE */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
+
+      {/* BARRE LATÉRALE (tiroir sur mobile, fixe sur grand écran) */}
       <aside
-        className={`w-64 rounded-3xl flex flex-col p-6 shadow-sm shrink-0 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white'
+        className={`w-64 max-w-[85vw] rounded-3xl flex flex-col p-6 shadow-sm shrink-0 overflow-y-auto transition-all duration-300 fixed top-2 bottom-2 left-2 z-40 sm:top-4 sm:bottom-4 sm:left-4 lg:static lg:z-auto lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-[110%]'} ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white'
           }`}
       >
         <div className="flex items-center gap-3 mb-10">
@@ -194,13 +205,20 @@ function MainLayout({ user, setUser, onLogout }) {
 
       {/* CONTENU PRINCIPAL */}
       <main
-        className={`flex-1 flex flex-col rounded-3xl p-8 shadow-sm overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 border border-gray-800 text-white' : 'bg-white text-gray-900'
+        className={`flex-1 min-w-0 flex flex-col rounded-3xl p-4 sm:p-8 shadow-sm overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 border border-gray-800 text-white' : 'bg-white text-gray-900'
           }`}
       >
-        <header className="flex justify-end items-center mb-2 shrink-0">
+        <header className="flex justify-between lg:justify-end items-center mb-2 shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className={`lg:hidden p-2 rounded-xl ${isDarkMode ? 'bg-gray-800 text-gray-200' : 'bg-gray-100 text-gray-700'}`}
+            aria-label="Ouvrir le menu"
+          >
+            <Menu size={22} />
+          </button>
           <div className="flex items-center gap-4">
             <div
-              className={`flex items-center gap-3 p-1.5 pr-4 rounded-full border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-100'
+              className={`flex items-center gap-3 p-1.5 sm:pr-4 rounded-full border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-100'
                 }`}
             >
               <div
@@ -209,7 +227,7 @@ function MainLayout({ user, setUser, onLogout }) {
               >
                 {initials}
               </div>
-              <div className="text-xs">
+              <div className="text-xs hidden sm:block">
                 <p className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{user.username}</p>
                 <p className="text-gray-400">{user.email || 'contact@freelance.com'}</p>
               </div>

@@ -355,7 +355,7 @@ export default function Factures({ refreshData, user = {}, isDarkMode = false, p
 
             {invoice && (
                 <Modal overlayClass="bg-black/70">
-                    <div className="bg-white text-gray-900 rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl animate-in zoom-in-95">
+                    <div className="bg-white text-gray-900 rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-8 shadow-2xl animate-in zoom-in-95">
                         <div className="flex justify-between items-center pb-4 border-b mb-6">
                             <h3 className="font-bold text-lg">Aperçu de la Facture</h3>
                             <div className="flex gap-2">

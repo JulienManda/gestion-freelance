@@ -87,12 +87,12 @@ export default function Dashboard({ clients = [], devis = [], factures = [], pai
 
     return (
         <div className="animate-in fade-in duration-300">
-            <div className="flex justify-between items-end mb-8 mt-2">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-8 mt-2">
                 <div>
-                    <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Tableau de bord</h1>
+                    <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Tableau de bord</h1>
                     <p className="text-gray-400 text-sm">Gérez votre activité, vos clients et vos paiements.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                     <Link
                         to="/devis"
                         className="text-white px-5 py-2.5 rounded-full text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition shadow-sm"
