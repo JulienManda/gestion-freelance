@@ -29,25 +29,22 @@ function MainLayout({ user, setUser, onLogout }) {
     const token = localStorage.getItem('auth_token');
     const headers = token ? { Authorization: `Token ${token}` } : {};
 
-    fetch(api('clients/'), { headers })
-      .then(res => res.json())
-      .then(data => setClients(data))
-      .catch(err => console.error("Erreur chargement clients:", err));
+    const load = (path, setter) =>
+      fetch(api(path), { headers })
+        .then(res => {
+          if (res.status === 401) {
+            onLogout(); // session expirée : retour à la connexion
+            return [];
+          }
+          return res.json();
+        })
+        .then(data => setter(Array.isArray(data) ? data : []))
+        .catch(err => console.error(`Erreur chargement ${path}:`, err));
 
-    fetch(api('devis/'), { headers })
-      .then(res => res.json())
-      .then(data => setDevis(data))
-      .catch(err => console.error("Erreur chargement devis:", err));
-
-    fetch(api('factures/'), { headers })
-      .then(res => res.json())
-      .then(data => setFactures(data))
-      .catch(err => console.error("Erreur chargement factures:", err));
-
-    fetch(api('paiements/'), { headers })
-      .then(res => res.json())
-      .then(data => setPaiements(data))
-      .catch(err => console.error("Erreur chargement paiements:", err));
+    load('clients/', setClients);
+    load('devis/', setDevis);
+    load('factures/', setFactures);
+    load('paiements/', setPaiements);
   };
 
   useEffect(() => {

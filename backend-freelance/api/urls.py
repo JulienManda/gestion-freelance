@@ -8,12 +8,12 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'clients', ClientViewSet)
-router.register(r'services', ServiceViewSet)
-router.register(r'devis', DevisViewSet)
-router.register(r'lignes-devis', LigneDevisViewSet)
-router.register(r'factures', FactureViewSet)
-router.register(r'paiements', PaiementViewSet)
+router.register(r'clients', ClientViewSet, basename='client')
+router.register(r'services', ServiceViewSet, basename='service')
+router.register(r'devis', DevisViewSet, basename='devis')
+router.register(r'lignes-devis', LigneDevisViewSet, basename='lignedevis')
+router.register(r'factures', FactureViewSet, basename='facture')
+router.register(r'paiements', PaiementViewSet, basename='paiement')
 
 urlpatterns = [
     path('', include(router.urls)),

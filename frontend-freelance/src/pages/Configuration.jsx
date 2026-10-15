@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Save, CheckCircle, Moon, Sun, Palette } from 'lucide-react';
+import { Save, CheckCircle, Moon, Sun, Palette, Trash2, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { api } from '../utils/api';
+import { api, clearSession } from '../utils/api';
 import { trimValues } from '../utils/helpers';
 import { checkText, checkEmail, checkPhone, hasErrors } from '../utils/validators';
 import FieldError from '../components/FieldError';
@@ -39,6 +39,11 @@ export default function Configuration({ user, setUser }) {
     const [error, setError] = useState('');
     const [errors, setErrors] = useState({});
     const navigate = useNavigate();
+    const [showDelete, setShowDelete] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [showDeletePassword, setShowDeletePassword] = useState(false);
+    const [deleteError, setDeleteError] = useState('');
+    const [deleting, setDeleting] = useState(false);
 
     const isDarkMode = user.darkMode || false;
 
@@ -79,6 +84,31 @@ export default function Configuration({ user, setUser }) {
         } catch (err) {
             console.error('Erreur lors de la sauvegarde :', err);
             setError("Erreur lors de l'enregistrement des modifications sur le serveur.");
+        }
+    };
+
+    const closeDelete = () => {
+        setShowDelete(false);
+        setDeletePassword('');
+        setDeleteError('');
+        setShowDeletePassword(false);
+    };
+
+    const handleDeleteAccount = async (e) => {
+        e.preventDefault();
+        if (!deletePassword) {
+            setDeleteError('Entrez votre mot de passe pour confirmer.');
+            return;
+        }
+        setDeleting(true);
+        setDeleteError('');
+        try {
+            await axios.delete(api('profile/'), { data: { password: deletePassword } });
+            clearSession();
+            window.location.href = '/';
+        } catch (err) {
+            setDeleteError(err.response?.data?.error || 'Suppression impossible pour le moment.');
+            setDeleting(false);
         }
     };
 
@@ -219,6 +249,63 @@ export default function Configuration({ user, setUser }) {
                     </div>
                 </form>
             </div>
+
+            <div className={`mt-8 rounded-3xl border p-6 ${isDarkMode ? 'border-red-900/50 bg-red-950/20' : 'border-red-200 bg-red-50/50'}`}>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-red-500 mb-2">Zone de danger</h2>
+                <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Supprimer votre compte efface définitivement vos clients, services, devis, factures et paiements. Cette action est irréversible.
+                </p>
+                <button
+                    type="button"
+                    onClick={() => setShowDelete(true)}
+                    className="cursor-pointer inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm"
+                >
+                    <Trash2 size={16} /> Supprimer mon compte
+                </button>
+            </div>
+
+            {showDelete && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <form
+                        onSubmit={handleDeleteAccount}
+                        className={`rounded-3xl p-6 max-w-sm w-full border shadow-2xl ${isDarkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-gray-100 text-gray-900'}`}
+                    >
+                        <AlertTriangle size={32} className="mx-auto text-red-500 mb-4" />
+                        <h3 className="text-lg font-bold mb-2 text-center">Supprimer définitivement le compte ?</h3>
+                        <p className="text-sm opacity-70 mb-4 text-center">
+                            Toutes vos données seront effacées. Entrez votre mot de passe pour confirmer.
+                        </p>
+                        <div className="relative">
+                            <input
+                                type={showDeletePassword ? 'text' : 'password'}
+                                value={deletePassword}
+                                onChange={(e) => { setDeletePassword(e.target.value); setDeleteError(''); }}
+                                placeholder="Mot de passe"
+                                autoComplete="current-password"
+                                maxLength={128}
+                                className={`${inputClass} pr-11`}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowDeletePassword(!showDeletePassword)}
+                                aria-label={showDeletePassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                            >
+                                {showDeletePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
+                        <FieldError message={deleteError} />
+                        <div className="flex gap-3 mt-5">
+                            <button type="button" onClick={closeDelete} className="cursor-pointer flex-1 py-2.5 border border-gray-500/30 rounded-xl font-semibold transition hover:bg-gray-500/10">
+                                Annuler
+                            </button>
+                            <button type="submit" disabled={deleting} className="cursor-pointer flex-1 py-2.5 bg-red-600 text-white rounded-xl font-semibold transition hover:bg-red-700 disabled:opacity-50">
+                                {deleting ? 'Suppression...' : 'Supprimer'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
         </div>
     );
 }

@@ -5,40 +5,75 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, identify_hasher, make_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import validate_email
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from .models import Client, Service, Devis, LigneDevis, Facture, Paiement, Utilisateur, CodeVerification
-from .mail import send_mail, MailError
 from .serializers import (
-    ClientSerializer, ServiceSerializer, DevisSerializer, 
+    ClientSerializer, ServiceSerializer, DevisSerializer,
     LigneDevisSerializer, FactureSerializer, PaiementSerializer
 )
+from .auth import SignedTokenAuthentication, AuthThrottle, make_token
+from .mail import send_mail, MailError
 
-class ClientViewSet(viewsets.ModelViewSet):
-    queryset = Client.objects.all()
+
+class OwnedViewSet(viewsets.ModelViewSet):
+    """Chaque utilisateur ne voit et ne modifie que ses propres données."""
+    authentication_classes = [SignedTokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    model = None
+    owner_path = 'utilisateur'  # chemin ORM vers l'utilisateur propriétaire
+    sets_owner = True           # True si le modèle porte directement le champ « utilisateur »
+
+    def get_queryset(self):
+        return self.model.objects.filter(**{self.owner_path: self.request.user})
+
+    def perform_create(self, serializer):
+        if self.sets_owner:
+            serializer.save(utilisateur=self.request.user)
+        else:
+            serializer.save()
+
+
+class ClientViewSet(OwnedViewSet):
+    model = Client
     serializer_class = ClientSerializer
 
-class ServiceViewSet(viewsets.ModelViewSet):
-    queryset = Service.objects.all()
+
+class ServiceViewSet(OwnedViewSet):
+    model = Service
     serializer_class = ServiceSerializer
 
-class DevisViewSet(viewsets.ModelViewSet):
-    queryset = Devis.objects.all()
+
+class DevisViewSet(OwnedViewSet):
+    model = Devis
     serializer_class = DevisSerializer
 
-class LigneDevisViewSet(viewsets.ModelViewSet):
-    queryset = LigneDevis.objects.all()
+
+class LigneDevisViewSet(OwnedViewSet):
+    model = LigneDevis
     serializer_class = LigneDevisSerializer
+    owner_path = 'devis__utilisateur'
+    sets_owner = False
 
-class FactureViewSet(viewsets.ModelViewSet):
-    queryset = Facture.objects.all()
+
+class FactureViewSet(OwnedViewSet):
+    model = Facture
     serializer_class = FactureSerializer
+    owner_path = 'devis__utilisateur'
+    sets_owner = False
 
-class PaiementViewSet(viewsets.ModelViewSet):
-    queryset = Paiement.objects.all()
+
+class PaiementViewSet(OwnedViewSet):
+    model = Paiement
     serializer_class = PaiementSerializer
+    owner_path = 'facture__devis__utilisateur'
+    sets_owner = False
 
 
 # --- AUTHENTIFICATION : inscription avec code email, mot de passe oublié ---
@@ -129,6 +164,9 @@ def erreur_mail():
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([AuthThrottle])
 def register_view(request):
     nom_entreprise = request.data.get('nomEntreprise', 'MonEspace')
     nom_admin = request.data.get('username') or request.data.get('nomAdmin', 'Admin')
@@ -165,6 +203,9 @@ def register_view(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([AuthThrottle])
 def verify_email_view(request):
     email = clean_email(request.data.get('email'))
     user = Utilisateur.objects.filter(email__iexact=email).first()
@@ -178,10 +219,13 @@ def verify_email_view(request):
         user.save(update_fields=['email_verifie'])
     else:
         return Response({'error': "Ce compte est déjà confirmé. Connectez-vous."}, status=status.HTTP_400_BAD_REQUEST)
-    return Response({'token': f"token-user-{user.id}", 'user': user_payload(user)})
+    return Response({'token': make_token(user), 'user': user_payload(user)})
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([AuthThrottle])
 def resend_code_view(request):
     email = clean_email(request.data.get('email'))
     user = Utilisateur.objects.filter(email__iexact=email, email_verifie=False).first()
@@ -195,6 +239,9 @@ def resend_code_view(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([AuthThrottle])
 def forgot_password_view(request):
     email = clean_email(request.data.get('email'))
     user = Utilisateur.objects.filter(email__iexact=email).first()
@@ -208,6 +255,9 @@ def forgot_password_view(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([AuthThrottle])
 def reset_password_view(request):
     email = clean_email(request.data.get('email'))
     password = request.data.get('password') or ''
@@ -226,6 +276,9 @@ def reset_password_view(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([AuthThrottle])
 def login_view(request):
     identifier = request.data.get('email') or request.data.get('username')
     mot_de_passe = request.data.get('password')
@@ -248,46 +301,46 @@ def login_view(request):
         return Response({'error': "Email non confirmé.", 'needs_verification': True, 'email': user.email},
                         status=status.HTTP_403_FORBIDDEN)
 
-    return Response({'token': f"token-user-{user.id}", 'user': user_payload(user)}, status=status.HTTP_200_OK)
+    return Response({'token': make_token(user), 'user': user_payload(user)}, status=status.HTTP_200_OK)
 
 
-@api_view(['GET', 'PUT'])
+@api_view(['GET', 'PUT', 'DELETE'])
+@authentication_classes([SignedTokenAuthentication])
+@permission_classes([IsAuthenticated])
 def profile_view(request):
-    # Récupération de l'ID utilisateur à partir du token (ex: 'token-user-5' -> 5)
-    auth_header = request.headers.get('Authorization', '')
-    try:
-        token_parts = auth_header.split('-')
-        user_id = token_parts[-1]
-        user = Utilisateur.objects.get(id=user_id)
-    except (IndexError, Utilisateur.DoesNotExist):
-        return Response({'error': 'Utilisateur non authentifié ou introuvable.'}, status=status.HTTP_401_UNAUTHORIZED)
+    user = request.user
 
     if request.method == 'GET':
-        return Response({
-            'id': user.id,
-            'username': user.nom_admin,
-            'email': user.email,
-            'nomEntreprise': user.nom_entreprise,
-            'activite': user.activite,
-            'telephone': user.telephone
-        })
+        return Response(user_payload(user))
 
-    elif request.method == 'PUT':
+    if request.method == 'PUT':
+        new_email = clean_email(request.data.get('email', user.email))
+        if new_email != user.email:
+            try:
+                validate_email(new_email)
+            except DjangoValidationError:
+                return Response({'error': "L'email n'est pas valide."}, status=status.HTTP_400_BAD_REQUEST)
+            if Utilisateur.objects.filter(email__iexact=new_email).exclude(pk=user.pk).exists():
+                return Response({'error': "Cet email est déjà associé à un compte."}, status=status.HTTP_400_BAD_REQUEST)
         user.nom_entreprise = request.data.get('nomEntreprise', user.nom_entreprise)
         user.nom_admin = request.data.get('username', user.nom_admin)
-        user.email = request.data.get('email', user.email)
+        user.email = new_email
         user.activite = request.data.get('activite', user.activite)
         user.telephone = request.data.get('telephone', user.telephone)
         user.save()
+        return Response({'success': True, 'user': user_payload(user)})
 
-        return Response({
-            'success': True,
-            'user': {
-                'id': user.id,
-                'username': user.nom_admin,
-                'email': user.email,
-                'nomEntreprise': user.nom_entreprise,
-                'activite': user.activite,
-                'telephone': user.telephone
-            }
-        })
+    # DELETE : suppression définitive du compte et de toutes ses données
+    if not password_ok(user, str(request.data.get('password') or '')):
+        return Response({'error': 'Mot de passe incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+    with transaction.atomic():
+        # Ordre imposé par les clés RESTRICT (facture -> devis, ligne -> service)
+        Paiement.objects.filter(facture__devis__utilisateur=user).delete()
+        Facture.objects.filter(devis__utilisateur=user).delete()
+        LigneDevis.objects.filter(devis__utilisateur=user).delete()
+        Devis.objects.filter(utilisateur=user).delete()
+        Service.objects.filter(utilisateur=user).delete()
+        Client.objects.filter(utilisateur=user).delete()
+        CodeVerification.objects.filter(email=user.email).delete()
+        user.delete()
+    return Response({'success': True})

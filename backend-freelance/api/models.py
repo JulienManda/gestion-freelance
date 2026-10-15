@@ -11,15 +11,23 @@ class Utilisateur(models.Model):
     # L'inscription crée le compte avec False jusqu'à la saisie du code.
     email_verifie = models.BooleanField(default=True)
 
+    # Attendus par Django REST Framework pour un modèle d'utilisateur personnalisé
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
     def __str__(self):
         return f"{self.nom_entreprise} - {self.nom_admin}"
 
 class Client(models.Model):
-    # Optionnel : si tu veux lier le client à l'utilisateur connecté
-    # utilisateur = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='clients', null=True, blank=True)
+    utilisateur = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='clients', null=True, blank=True)
     nom = models.CharField(max_length=255)
     entreprise = models.CharField(max_length=255, blank=True, null=True)
-    email = models.EmailField(unique=True)
+    email = models.EmailField()  # unicité vérifiée par utilisateur dans le serializer
     telephone = models.CharField(max_length=20, blank=True, null=True)
 
     class Meta:
@@ -29,6 +37,7 @@ class Client(models.Model):
         return self.nom
 
 class Service(models.Model):
+    utilisateur = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='services', null=True, blank=True)
     nom = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     prix_base = models.DecimalField(max_digits=10, decimal_places=2)
@@ -42,6 +51,7 @@ class Devis(models.Model):
         ('ACCEPTE', 'Accepté'),
         ('REFUSE', 'Refusé'),
     ]
+    utilisateur = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='devis', null=True, blank=True)
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='devis')
     date_creation = models.DateField(auto_now_add=True)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='ATTENTE')
