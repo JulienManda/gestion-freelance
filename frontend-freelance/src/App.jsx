@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Briefcase, FileText, CreditCard,
-  Settings, LogOut, AlertTriangle, Menu, X
+  Settings, LogOut, AlertTriangle, Menu, X, Info
 } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
@@ -10,6 +10,7 @@ import Services from './pages/Services';
 import Devis from './pages/Devis';
 import Factures from './pages/Factures';
 import Configuration from './pages/Configuration';
+import APropos from './pages/APropos';
 import Auth from './pages/Auth';
 import { api } from './utils/api';
 
@@ -191,6 +192,20 @@ function MainLayout({ user, setUser, onLogout }) {
               </div>
             )}
           </NavLink>
+          <NavLink
+            to="/a-propos"
+            className={({ isActive }) =>
+              `${navClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <div className="flex items-center gap-3 w-full" style={{ color: isActive ? primaryColor : undefined }}>
+                {renderActiveIndicator(isActive)}
+                <Info size={20} /> À propos
+              </div>
+            )}
+          </NavLink>
           <button
             onClick={() => setShowLogoutModal(true)}
             className="flex items-center gap-3 text-gray-400 hover:text-red-500 p-3 rounded-xl transition w-full text-left"
@@ -240,6 +255,7 @@ function MainLayout({ user, setUser, onLogout }) {
             <Route path="/devis" element={<Devis refreshData={loadData} isDarkMode={isDarkMode} primaryColor={primaryColor} />} />
             <Route path="/factures" element={<Factures refreshData={loadData} user={user} isDarkMode={isDarkMode} primaryColor={primaryColor} />} />
             <Route path="/configuration" element={<Configuration user={user} setUser={setUser} />} />
+            <Route path="/a-propos" element={<APropos isDarkMode={isDarkMode} primaryColor={primaryColor} />} />
           </Routes>
         </div>
       </main>
