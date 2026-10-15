@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, KeyRound, ArrowLeft } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, KeyRound, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
 import { api } from '../utils/api';
 import { trimValues } from '../utils/helpers';
@@ -10,6 +10,7 @@ const INITIAL_FORM = {
     username: '',
     email: '',
     password: '',
+    confirmPassword: '',
     code: '',
     nomEntreprise: 'MonEspace',
     activite: 'Community Management & Design',
@@ -34,11 +35,16 @@ const validate = (data, mode) => {
     if (mode === 'login' || mode === 'register' || mode === 'reset') {
         errors.password = checkPassword(data.password, { strict: mode !== 'login' });
     }
+    if ((mode === 'register' || mode === 'reset') && !errors.password && data.password !== data.confirmPassword) {
+        errors.confirmPassword = 'Les mots de passe ne correspondent pas.';
+    }
     if (mode === 'verify' || mode === 'reset') errors.code = checkCode(data.code);
     return errors;
 };
 
-function AuthInput({ label, icon: Icon, error, ...inputProps }) {
+function AuthInput({ label, icon: Icon, error, type, ...inputProps }) {
+    const [visible, setVisible] = useState(false);
+    const isPassword = type === 'password';
     return (
         <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{label}</label>
@@ -46,8 +52,19 @@ function AuthInput({ label, icon: Icon, error, ...inputProps }) {
                 <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
                     {...inputProps}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#185e45]"
+                    type={isPassword && visible ? 'text' : type}
+                    className={`w-full pl-10 ${isPassword ? 'pr-11' : 'pr-4'} py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#185e45]`}
                 />
+                {isPassword && (
+                    <button
+                        type="button"
+                        onClick={() => setVisible(!visible)}
+                        aria-label={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                    >
+                        {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                )}
             </div>
             <FieldError message={error} />
         </div>
@@ -93,7 +110,7 @@ export default function Auth({ onLogin }) {
         setError('');
         setInfo('');
 
-        const payload = trimValues(formData, ['password']);
+        const payload = trimValues(formData, ['password', 'confirmPassword']);
         const validationErrors = validate(payload, mode);
         setErrors(validationErrors);
         if (hasErrors(validationErrors)) return;
@@ -104,7 +121,8 @@ export default function Auth({ onLogin }) {
                 const { data } = await axios.post(api('login/'), { username: payload.username, password: payload.password });
                 finishLogin(data, payload);
             } else if (mode === 'register') {
-                await axios.post(api('register/'), payload);
+                const { confirmPassword, ...registerData } = payload;
+                await axios.post(api('register/'), registerData);
                 setCooldown(60);
                 goTo('verify');
                 setInfo(`Un code a été envoyé à ${payload.email}.`);
@@ -118,7 +136,7 @@ export default function Auth({ onLogin }) {
                 setInfo('Si cet email correspond à un compte, un code vient d’être envoyé.');
             } else if (mode === 'reset') {
                 await axios.post(api('reset-password/'), { email: payload.email, code: payload.code, password: payload.password });
-                setFormData({ ...formData, password: '', code: '' });
+                setFormData({ ...formData, password: '', confirmPassword: '', code: '' });
                 goTo('login');
                 setInfo('Mot de passe modifié. Vous pouvez vous connecter.');
             }
@@ -233,6 +251,20 @@ export default function Auth({ onLogin }) {
                             value={formData.password}
                             onChange={updateField('password')}
                             error={errors.password}
+                        />
+                    )}
+
+                    {(mode === 'register' || mode === 'reset') && (
+                        <AuthInput
+                            label="Confirmer le mot de passe"
+                            icon={Lock}
+                            type="password"
+                            placeholder="••••••••"
+                            maxLength={128}
+                            autoComplete="new-password"
+                            value={formData.confirmPassword}
+                            onChange={updateField('confirmPassword')}
+                            error={errors.confirmPassword}
                         />
                     )}
 
