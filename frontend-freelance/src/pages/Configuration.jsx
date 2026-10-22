@@ -48,7 +48,7 @@ export default function Configuration({ user, setUser }) {
     const isDarkMode = user.darkMode || false;
 
     const inputClass = `w-full border rounded-xl p-3 text-sm focus:outline-none ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white focus:border-gray-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-[#185e45]'}`;
-    const sectionTitleClass = `text-sm font-bold uppercase tracking-wider mb-4 border-b pb-2 ${isDarkMode ? 'border-gray-800 text-gray-300' : 'border-gray-100 text-gray-700'}`;
+    const titleClass = `text-sm font-bold uppercase tracking-wider mb-4 border-b pb-2 ${isDarkMode ? 'border-gray-800 text-gray-300' : 'border-gray-100 text-gray-700'}`;
 
     const updateField = (name) => (e) => {
         setFormData({ ...formData, [name]: e.target.value });
@@ -60,9 +60,9 @@ export default function Configuration({ user, setUser }) {
         setError('');
 
         const payload = trimValues(formData);
-        const validationErrors = validateProfile(payload);
-        setErrors(validationErrors);
-        if (hasErrors(validationErrors)) return;
+        const errs = validateProfile(payload);
+        setErrors(errs);
+        if (hasErrors(errs)) return;
 
         const token = localStorage.getItem('auth_token');
 
@@ -71,10 +71,10 @@ export default function Configuration({ user, setUser }) {
                 headers: { Authorization: `Token ${token}` },
             });
 
-            const updatedUser = { ...response.data.user, primaryColor: payload.primaryColor, darkMode: payload.darkMode };
+            const newUser = { ...response.data.user, primaryColor: payload.primaryColor, darkMode: payload.darkMode };
 
-            setUser(updatedUser);
-            localStorage.setItem('user_profile', JSON.stringify(updatedUser));
+            setUser(newUser);
+            localStorage.setItem('user_profile', JSON.stringify(newUser));
 
             setSuccessMessage(true);
 
@@ -94,7 +94,7 @@ export default function Configuration({ user, setUser }) {
         setShowDeletePassword(false);
     };
 
-    const handleDeleteAccount = async (e) => {
+    const deleteAccount = async (e) => {
         e.preventDefault();
         if (!deletePassword) {
             setDeleteError('Entrez votre mot de passe pour confirmer.');
@@ -135,7 +135,7 @@ export default function Configuration({ user, setUser }) {
                 <form onSubmit={handleSave} noValidate className="space-y-5">
 
                     <div>
-                        <h3 className={sectionTitleClass}>Informations de l'Entreprise</h3>
+                        <h3 className={titleClass}>Informations de l'Entreprise</h3>
                         <div className="space-y-4">
                             <Field
                                 label="Nom de l'entreprise / Marque"
@@ -191,7 +191,7 @@ export default function Configuration({ user, setUser }) {
                     </div>
 
                     <div className="pt-4">
-                        <h3 className={sectionTitleClass}>Apparence & Thème</h3>
+                        <h3 className={titleClass}>Apparence & Thème</h3>
 
                         <div className="space-y-4">
                             <div className={`flex items-center justify-between p-4 rounded-2xl border ${isDarkMode ? 'bg-gray-800/50 border-gray-800' : 'bg-gray-50 border-gray-100'}`}>
@@ -267,7 +267,7 @@ export default function Configuration({ user, setUser }) {
             {showDelete && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <form
-                        onSubmit={handleDeleteAccount}
+                        onSubmit={deleteAccount}
                         className={`rounded-3xl p-6 max-w-sm w-full border shadow-2xl ${isDarkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-gray-100 text-gray-900'}`}
                     >
                         <AlertTriangle size={32} className="mx-auto text-red-500 mb-4" />

@@ -69,7 +69,7 @@ export default function Factures({ refreshData, user = {}, isDarkMode = false, p
             .then(res => setter(Array.isArray(res.data) ? res.data : []))
             .catch(() => setter([]));
 
-    const fetchData = () => {
+    const loadAll = () => {
         fetchList('factures', setFactures);
         fetchList('devis', setDevisList);
         fetchList('clients', setClients);
@@ -77,7 +77,7 @@ export default function Factures({ refreshData, user = {}, isDarkMode = false, p
         fetchList('paiements', setPaiements);
     };
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => { loadAll(); }, []);
 
     const calculerTotalFacture = (devisIdOrObj) => {
         const devisId = getSafeId(devisIdOrObj);
@@ -139,19 +139,19 @@ export default function Factures({ refreshData, user = {}, isDarkMode = false, p
 
     const handleCreateFacture = (e) => {
         e.preventDefault();
-        const validationErrors = {
+        const errs = {
             devis: devisSansFacture.some(d => String(d.id) === String(selectedDevis)) ? '' : 'Choisissez un devis accepté.',
             date_echeance: checkDate(dateEcheance, "La date d'échéance", { min: todayISO() }),
         };
-        setErrors(validationErrors);
-        if (hasErrors(validationErrors)) return;
+        setErrors(errs);
+        if (hasErrors(errs)) return;
 
         axios.post(api('factures/'), { devis: getSafeId(selectedDevis), date_echeance: dateEcheance })
             .then(() => {
                 setShowModal(false);
                 setSelectedDevis('');
                 setDateEcheance('');
-                fetchData();
+                loadAll();
                 if (refreshData) refreshData();
                 showNotification('Facture générée avec succès !');
             })
@@ -167,12 +167,12 @@ export default function Factures({ refreshData, user = {}, isDarkMode = false, p
         if (!montantError && montantSaisi > reste) {
             montantError = `Impossible d'encaisser plus que le reste à payer (${reste.toLocaleString()} Ar).`;
         }
-        const validationErrors = {
+        const errs = {
             montant: montantError,
             moyen: PAYMENT_METHODS.some(m => m.value === moyenPaiement) ? '' : 'Moyen de paiement invalide.',
         };
-        setErrors(validationErrors);
-        if (hasErrors(validationErrors)) return;
+        setErrors(errs);
+        if (hasErrors(errs)) return;
 
         axios.post(api('paiements/'), {
             facture: currentFacture.id,
@@ -180,7 +180,7 @@ export default function Factures({ refreshData, user = {}, isDarkMode = false, p
             moyen: moyenPaiement,
         }).then(() => {
             setShowPaiementModal(false);
-            fetchData();
+            loadAll();
             if (refreshData) refreshData();
             showNotification('Paiement enregistré avec succès !');
         }).catch(() => showNotification("Erreur lors de l'enregistrement du paiement.", 'error'));

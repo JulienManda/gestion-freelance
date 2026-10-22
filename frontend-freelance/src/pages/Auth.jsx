@@ -111,9 +111,9 @@ export default function Auth({ onLogin }) {
         setInfo('');
 
         const payload = trimValues(formData, ['password', 'confirmPassword']);
-        const validationErrors = validate(payload, mode);
-        setErrors(validationErrors);
-        if (hasErrors(validationErrors)) return;
+        const errs = validate(payload, mode);
+        setErrors(errs);
+        if (hasErrors(errs)) return;
 
         setLoading(true);
         try {
@@ -168,11 +168,11 @@ export default function Auth({ onLogin }) {
     };
 
     const [title, subtitle] = TITLES[mode];
-    const submitLabel = {
+    const btnLabel = {
         login: 'Se connecter', register: "S'inscrire", verify: 'Confirmer',
         forgot: 'Envoyer le code', reset: 'Changer le mot de passe',
     }[mode];
-    const showCodeStep = mode === 'verify' || mode === 'reset';
+    const codeStep = mode === 'verify' || mode === 'reset';
 
     return (
         <div className="flex min-h-dvh w-full items-center justify-center bg-gray-100 font-sans p-4">
@@ -221,11 +221,11 @@ export default function Auth({ onLogin }) {
                             value={formData.email}
                             onChange={updateField('email')}
                             error={errors.email}
-                            readOnly={showCodeStep}
+                            readOnly={codeStep}
                         />
                     )}
 
-                    {showCodeStep && (
+                    {codeStep && (
                         <AuthInput
                             label="Code de confirmation"
                             icon={KeyRound}
@@ -280,11 +280,11 @@ export default function Auth({ onLogin }) {
                         disabled={loading}
                         className="w-full bg-[#185e45] hover:bg-green-800 text-white py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 shadow-sm mt-6 disabled:opacity-50"
                     >
-                        {loading ? 'Chargement...' : submitLabel} <ArrowRight size={16} />
+                        {loading ? 'Chargement...' : btnLabel} <ArrowRight size={16} />
                     </button>
                 </form>
 
-                {showCodeStep && (
+                {codeStep && (
                     <div className="mt-4 text-center">
                         <button
                             type="button"
