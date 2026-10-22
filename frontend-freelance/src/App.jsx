@@ -26,7 +26,7 @@ function MainLayout({ user, setUser, onLogout }) {
   const primaryColor = user.primaryColor || '#185e45';
   const isDarkMode = user.darkMode || false;
 
-  const fetchAll = () => {
+  const loadData = () => {
     const token = localStorage.getItem('auth_token');
     const headers = token ? { Authorization: `Token ${token}` } : {};
 
@@ -34,7 +34,7 @@ function MainLayout({ user, setUser, onLogout }) {
       fetch(api(path), { headers })
         .then(res => {
           if (res.status === 401) {
-            onLogout();
+            onLogout(); // session expirée : retour à la connexion
             return [];
           }
           return res.json();
@@ -49,17 +49,17 @@ function MainLayout({ user, setUser, onLogout }) {
   };
 
   useEffect(() => {
-    fetchAll();
-    setSidebarOpen(false);
+    loadData();
+    setSidebarOpen(false); // ferme le menu mobile après navigation
   }, [location]);
 
-  const linkClass = ({ isActive }) =>
+  const navClass = ({ isActive }) =>
     `flex items-center justify-between p-3 rounded-xl transition relative ${isActive
       ? 'font-bold'
       : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50')
     }`;
 
-  const activeBar = (isActive) =>
+  const renderActiveIndicator = (isActive) =>
     isActive ? (
       <div
         className="absolute left-0 top-1/4 bottom-1/4 w-1 rounded-r-md"
@@ -74,6 +74,7 @@ function MainLayout({ user, setUser, onLogout }) {
       className={`flex h-dvh font-sans p-2 sm:p-4 gap-4 w-full relative transition-colors duration-300 ${isDarkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-100 text-gray-900'
         }`}
     >
+      {/* FOND SOMBRE DU MENU MOBILE */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
@@ -81,6 +82,7 @@ function MainLayout({ user, setUser, onLogout }) {
         ></div>
       )}
 
+      {/* BARRE LATÉRALE (tiroir sur mobile, fixe sur grand écran) */}
       <aside
         className={`w-64 max-w-[85vw] rounded-3xl flex flex-col p-6 shadow-sm shrink-0 overflow-y-auto transition-all duration-300 fixed top-2 bottom-2 left-2 z-40 sm:top-4 sm:bottom-4 sm:left-4 lg:static lg:z-auto lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-[110%]'} ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white'
           }`}
@@ -101,13 +103,13 @@ function MainLayout({ user, setUser, onLogout }) {
           <NavLink
             to="/"
             className={({ isActive }) =>
-              `${linkClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
+              `${navClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
               }`
             }
           >
             {({ isActive }) => (
               <div className="flex items-center gap-3 w-full" style={{ color: isActive ? primaryColor : undefined }}>
-                {activeBar(isActive)}
+                {renderActiveIndicator(isActive)}
                 <LayoutDashboard size={20} /> Tableau de bord
               </div>
             )}
@@ -116,13 +118,13 @@ function MainLayout({ user, setUser, onLogout }) {
           <NavLink
             to="/clients"
             className={({ isActive }) =>
-              `${linkClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
+              `${navClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
               }`
             }
           >
             {({ isActive }) => (
               <div className="flex items-center gap-3 w-full" style={{ color: isActive ? primaryColor : undefined }}>
-                {activeBar(isActive)}
+                {renderActiveIndicator(isActive)}
                 <Users size={20} /> Clients
               </div>
             )}
@@ -131,13 +133,13 @@ function MainLayout({ user, setUser, onLogout }) {
           <NavLink
             to="/services"
             className={({ isActive }) =>
-              `${linkClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
+              `${navClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
               }`
             }
           >
             {({ isActive }) => (
               <div className="flex items-center gap-3 w-full" style={{ color: isActive ? primaryColor : undefined }}>
-                {activeBar(isActive)}
+                {renderActiveIndicator(isActive)}
                 <Briefcase size={20} /> Services
               </div>
             )}
@@ -146,13 +148,13 @@ function MainLayout({ user, setUser, onLogout }) {
           <NavLink
             to="/devis"
             className={({ isActive }) =>
-              `${linkClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
+              `${navClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
               }`
             }
           >
             {({ isActive }) => (
               <div className="flex items-center gap-3 w-full" style={{ color: isActive ? primaryColor : undefined }}>
-                {activeBar(isActive)}
+                {renderActiveIndicator(isActive)}
                 <FileText size={20} /> Devis
               </div>
             )}
@@ -161,13 +163,13 @@ function MainLayout({ user, setUser, onLogout }) {
           <NavLink
             to="/factures"
             className={({ isActive }) =>
-              `${linkClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
+              `${navClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
               }`
             }
           >
             {({ isActive }) => (
               <div className="flex items-center gap-3 w-full" style={{ color: isActive ? primaryColor : undefined }}>
-                {activeBar(isActive)}
+                {renderActiveIndicator(isActive)}
                 <CreditCard size={20} /> Factures
               </div>
             )}
@@ -179,13 +181,13 @@ function MainLayout({ user, setUser, onLogout }) {
           <NavLink
             to="/configuration"
             className={({ isActive }) =>
-              `${linkClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
+              `${navClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
               }`
             }
           >
             {({ isActive }) => (
               <div className="flex items-center gap-3 w-full" style={{ color: isActive ? primaryColor : undefined }}>
-                {activeBar(isActive)}
+                {renderActiveIndicator(isActive)}
                 <Settings size={20} /> Configuration
               </div>
             )}
@@ -193,13 +195,13 @@ function MainLayout({ user, setUser, onLogout }) {
           <NavLink
             to="/a-propos"
             className={({ isActive }) =>
-              `${linkClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
+              `${navClass({ isActive })} ${isActive ? (isDarkMode ? 'text-white bg-gray-800' : 'text-gray-900 bg-gray-50') : ''
               }`
             }
           >
             {({ isActive }) => (
               <div className="flex items-center gap-3 w-full" style={{ color: isActive ? primaryColor : undefined }}>
-                {activeBar(isActive)}
+                {renderActiveIndicator(isActive)}
                 <Info size={20} /> À propos
               </div>
             )}
@@ -213,6 +215,7 @@ function MainLayout({ user, setUser, onLogout }) {
         </nav>
       </aside>
 
+      {/* CONTENU PRINCIPAL */}
       <main
         className={`flex-1 min-w-0 flex flex-col rounded-3xl p-4 sm:p-8 shadow-sm overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 border border-gray-800 text-white' : 'bg-white text-gray-900'
           }`}
@@ -249,14 +252,15 @@ function MainLayout({ user, setUser, onLogout }) {
             <Route path="/" element={<Dashboard clients={clients} devis={devis} factures={factures} paiements={paiements} primaryColor={primaryColor} isDarkMode={isDarkMode} />} />
             <Route path="/clients" element={<Clients isDarkMode={isDarkMode} primaryColor={primaryColor} />} />
             <Route path="/services" element={<Services isDarkMode={isDarkMode} primaryColor={primaryColor} />} />
-            <Route path="/devis" element={<Devis refreshData={fetchAll} isDarkMode={isDarkMode} primaryColor={primaryColor} />} />
-            <Route path="/factures" element={<Factures refreshData={fetchAll} user={user} isDarkMode={isDarkMode} primaryColor={primaryColor} />} />
+            <Route path="/devis" element={<Devis refreshData={loadData} isDarkMode={isDarkMode} primaryColor={primaryColor} />} />
+            <Route path="/factures" element={<Factures refreshData={loadData} user={user} isDarkMode={isDarkMode} primaryColor={primaryColor} />} />
             <Route path="/configuration" element={<Configuration user={user} setUser={setUser} />} />
             <Route path="/a-propos" element={<APropos isDarkMode={isDarkMode} primaryColor={primaryColor} />} />
           </Routes>
         </div>
       </main>
 
+      {/* MODALE DE CONFIRMATION DE DÉCONNEXION */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 animate-in fade-in">
           <div

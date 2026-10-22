@@ -10,19 +10,21 @@ export const clearSession = () => {
     try {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user_profile');
-    } catch { }
+    } catch { /* stockage indisponible */ }
 };
 
+// Ajoute le jeton de connexion à chaque requête vers l'API
 axios.interceptors.request.use((config) => {
     try {
         const token = localStorage.getItem('auth_token');
         if (token && String(config.url || '').startsWith(API_URL)) {
             config.headers.Authorization = `Token ${token}`;
         }
-    } catch { }
+    } catch { /* stockage indisponible */ }
     return config;
 });
 
+// Session expirée ou invalide : retour à l'écran de connexion
 axios.interceptors.response.use(
     (response) => response,
     (error) => {

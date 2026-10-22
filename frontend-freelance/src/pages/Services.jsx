@@ -31,14 +31,14 @@ export default function Services({ isDarkMode = false, primaryColor = '#185e45' 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [delService, setDelService] = useState(null);
+    const [serviceToDelete, setServiceToDelete] = useState(null);
     const [formData, setFormData] = useState(EMPTY_FORM);
     const [errors, setErrors] = useState({});
     const [notification, showNotification] = useNotification();
 
     const { cardBg, field, tableHeaderBg, divideClass, rowHover } = getTheme(isDarkMode, true);
 
-    const loadServices = () => {
+    const fetchServices = () => {
         axios.get(api('services/'))
             .then(res => {
                 setServices(sortByIdDesc(res.data));
@@ -47,15 +47,15 @@ export default function Services({ isDarkMode = false, primaryColor = '#185e45' 
             .catch(() => setLoading(false));
     };
 
-    useEffect(() => { loadServices(); }, []);
+    useEffect(() => { fetchServices(); }, []);
 
-    const search = searchTerm.toLowerCase();
-    const results = services.filter(s =>
-        s.nom.toLowerCase().includes(search) ||
-        (s.description && s.description.toLowerCase().includes(search))
+    const query = searchTerm.toLowerCase();
+    const filteredServices = services.filter(s =>
+        s.nom.toLowerCase().includes(query) ||
+        (s.description && s.description.toLowerCase().includes(query))
     );
 
-    const { currentPage, setCurrentPage, currentItems, totalPages } = usePagination(results, ITEMS_PER_PAGE, searchTerm);
+    const { currentPage, setCurrentPage, currentItems, totalPages } = usePagination(filteredServices, ITEMS_PER_PAGE, searchTerm);
 
     const openModal = (service = null) => {
         setEditingId(service ? service.id : null);
@@ -74,32 +74,32 @@ export default function Services({ isDarkMode = false, primaryColor = '#185e45' 
     const handleSubmit = (e) => {
         e.preventDefault();
         const payload = trimValues(formData);
-        const errs = validateService(payload);
-        setErrors(errs);
-        if (hasErrors(errs)) return;
+        const validationErrors = validateService(payload);
+        setErrors(validationErrors);
+        if (hasErrors(validationErrors)) return;
 
-        const req = editingId
+        const request = editingId
             ? axios.put(api(`services/${editingId}/`), payload)
             : axios.post(api('services/'), payload);
 
-        req.then(() => {
+        request.then(() => {
             setIsModalOpen(false);
-            loadServices();
+            fetchServices();
             if (!editingId) setCurrentPage(1);
             showNotification(`Service ${editingId ? 'mis à jour' : 'ajouté'} avec succès !`);
         }).catch(() => showNotification("Erreur lors de l'opération.", 'error'));
     };
 
-    const handleDelete = () => {
-        if (!delService) return;
-        axios.delete(api(`services/${delService.id}/`))
+    const confirmDelete = () => {
+        if (!serviceToDelete) return;
+        axios.delete(api(`services/${serviceToDelete.id}/`))
             .then(() => {
-                setDelService(null);
-                loadServices();
+                setServiceToDelete(null);
+                fetchServices();
                 showNotification('Service supprimé avec succès !');
             })
             .catch(() => {
-                setDelService(null);
+                setServiceToDelete(null);
                 showNotification('Suppression impossible : ce service est utilisé dans des devis.', 'error');
             });
     };
@@ -120,7 +120,7 @@ export default function Services({ isDarkMode = false, primaryColor = '#185e45' 
             <div className={`rounded-3xl border shadow-sm overflow-hidden ${cardBg}`}>
                 {loading ? (
                     <div className="p-8 text-center text-gray-400">Chargement...</div>
-                ) : results.length === 0 ? (
+                ) : filteredServices.length === 0 ? (
                     <div className="p-12 text-center text-gray-400">
                         <Package size={48} className="mx-auto mb-3 opacity-50" />
                         <p>Aucun service trouvé</p>
@@ -160,7 +160,7 @@ export default function Services({ isDarkMode = false, primaryColor = '#185e45' 
                                         <td className="p-4 pr-6 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button onClick={() => openModal(s)} className="cursor-pointer p-2 text-blue-500 transition-all duration-200 hover:bg-blue-500/10 rounded-lg hover:scale-110 active:scale-95"><Edit3 size={18} /></button>
-                                                <button onClick={() => setDelService(s)} className="cursor-pointer p-2 text-red-500 transition-all duration-200 hover:bg-red-500/10 rounded-lg hover:scale-110 active:scale-95"><Trash2 size={18} /></button>
+                                                <button onClick={() => setServiceToDelete(s)} className="cursor-pointer p-2 text-red-500 transition-all duration-200 hover:bg-red-500/10 rounded-lg hover:scale-110 active:scale-95"><Trash2 size={18} /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -175,7 +175,7 @@ export default function Services({ isDarkMode = false, primaryColor = '#185e45' 
                         currentPage={currentPage}
                         setCurrentPage={setCurrentPage}
                         totalPages={totalPages}
-                        totalItems={results.length}
+                        totalItems={filteredServices.length}
                         itemsPerPage={ITEMS_PER_PAGE}
                         isDarkMode={isDarkMode}
                     />
@@ -208,13 +208,13 @@ export default function Services({ isDarkMode = false, primaryColor = '#185e45' 
                 </Modal>
             )}
 
-            {delService && (
+            {serviceToDelete && (
                 <ConfirmDeleteModal
                     title="Supprimer le service"
-                    name={delService.nom}
+                    name={serviceToDelete.nom}
                     cardBg={cardBg}
-                    onCancel={() => setDelService(null)}
-                    onConfirm={handleDelete}
+                    onCancel={() => setServiceToDelete(null)}
+                    onConfirm={confirmDelete}
                 />
             )}
 

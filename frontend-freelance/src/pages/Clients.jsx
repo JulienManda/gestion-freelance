@@ -31,14 +31,14 @@ export default function Clients({ isDarkMode = false, primaryColor = '#185e45' }
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [toDelete, setToDelete] = useState(null);
+    const [clientToDelete, setClientToDelete] = useState(null);
     const [formData, setFormData] = useState(EMPTY_FORM);
     const [errors, setErrors] = useState({});
     const [notification, showNotification] = useNotification();
 
     const { cardBg, field, tableHeaderBg, divideClass, rowHover } = getTheme(isDarkMode, true);
 
-    const getClients = () => {
+    const fetchClients = () => {
         axios.get(api('clients/'))
             .then(res => {
                 setClients(sortByIdDesc(res.data));
@@ -47,16 +47,16 @@ export default function Clients({ isDarkMode = false, primaryColor = '#185e45' }
             .catch(() => setLoading(false));
     };
 
-    useEffect(() => { getClients(); }, []);
+    useEffect(() => { fetchClients(); }, []);
 
-    const q = searchTerm.toLowerCase();
-    const filtered = clients.filter(c =>
-        c.nom.toLowerCase().includes(q) ||
-        (c.entreprise && c.entreprise.toLowerCase().includes(q)) ||
-        (c.email || '').toLowerCase().includes(q)
+    const query = searchTerm.toLowerCase();
+    const filteredClients = clients.filter(c =>
+        c.nom.toLowerCase().includes(query) ||
+        (c.entreprise && c.entreprise.toLowerCase().includes(query)) ||
+        (c.email || '').toLowerCase().includes(query)
     );
 
-    const { currentPage, setCurrentPage, currentItems, totalPages } = usePagination(filtered, ITEMS_PER_PAGE, searchTerm);
+    const { currentPage, setCurrentPage, currentItems, totalPages } = usePagination(filteredClients, ITEMS_PER_PAGE, searchTerm);
 
     const openModal = (client = null) => {
         setEditingId(client ? client.id : null);
@@ -75,32 +75,32 @@ export default function Clients({ isDarkMode = false, primaryColor = '#185e45' }
     const handleSubmit = (e) => {
         e.preventDefault();
         const payload = trimValues(formData);
-        const newErrors = validateClient(payload);
-        setErrors(newErrors);
-        if (hasErrors(newErrors)) return;
+        const validationErrors = validateClient(payload);
+        setErrors(validationErrors);
+        if (hasErrors(validationErrors)) return;
 
-        const req = editingId
+        const request = editingId
             ? axios.put(api(`clients/${editingId}/`), payload)
             : axios.post(api('clients/'), payload);
 
-        req.then(() => {
+        request.then(() => {
             setIsModalOpen(false);
-            getClients();
+            fetchClients();
             if (!editingId) setCurrentPage(1);
             showNotification(`Client ${editingId ? 'mis à jour' : 'ajouté'} avec succès !`);
         }).catch(() => showNotification("Erreur lors de l'opération.", 'error'));
     };
 
-    const removeClient = () => {
-        if (!toDelete) return;
-        axios.delete(api(`clients/${toDelete.id}/`))
+    const confirmDelete = () => {
+        if (!clientToDelete) return;
+        axios.delete(api(`clients/${clientToDelete.id}/`))
             .then(() => {
-                setToDelete(null);
-                getClients();
+                setClientToDelete(null);
+                fetchClients();
                 showNotification('Client supprimé avec succès !');
             })
             .catch(() => {
-                setToDelete(null);
+                setClientToDelete(null);
                 showNotification('Suppression impossible : ce client est lié à des devis.', 'error');
             });
     };
@@ -121,7 +121,7 @@ export default function Clients({ isDarkMode = false, primaryColor = '#185e45' }
             <div className={`rounded-3xl border shadow-sm overflow-hidden ${cardBg}`}>
                 {loading ? (
                     <div className="p-8 text-center text-gray-500 font-medium">Chargement des données...</div>
-                ) : filtered.length === 0 ? (
+                ) : filteredClients.length === 0 ? (
                     <div className="p-12 text-center">
                         <User size={48} className="mx-auto text-gray-400 mb-3 opacity-50" />
                         <p className="font-medium opacity-60">Aucun client trouvé</p>
@@ -161,7 +161,7 @@ export default function Clients({ isDarkMode = false, primaryColor = '#185e45' }
                                         <td className="p-4 pr-6 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button onClick={() => openModal(client)} className="cursor-pointer p-2 rounded-lg text-blue-500 transition-all duration-200 hover:bg-blue-500/10 hover:scale-110 active:scale-95"><Edit3 size={18} /></button>
-                                                <button onClick={() => setToDelete(client)} className="cursor-pointer p-2 rounded-lg text-red-500 transition-all duration-200 hover:bg-red-500/10 hover:scale-110 active:scale-95"><Trash2 size={18} /></button>
+                                                <button onClick={() => setClientToDelete(client)} className="cursor-pointer p-2 rounded-lg text-red-500 transition-all duration-200 hover:bg-red-500/10 hover:scale-110 active:scale-95"><Trash2 size={18} /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -176,7 +176,7 @@ export default function Clients({ isDarkMode = false, primaryColor = '#185e45' }
                         currentPage={currentPage}
                         setCurrentPage={setCurrentPage}
                         totalPages={totalPages}
-                        totalItems={filtered.length}
+                        totalItems={filteredClients.length}
                         itemsPerPage={ITEMS_PER_PAGE}
                         isDarkMode={isDarkMode}
                     />
@@ -212,13 +212,13 @@ export default function Clients({ isDarkMode = false, primaryColor = '#185e45' }
                 </Modal>
             )}
 
-            {toDelete && (
+            {clientToDelete && (
                 <ConfirmDeleteModal
                     title="Supprimer le client"
-                    name={toDelete.nom}
+                    name={clientToDelete.nom}
                     cardBg={cardBg}
-                    onCancel={() => setToDelete(null)}
-                    onConfirm={removeClient}
+                    onCancel={() => setClientToDelete(null)}
+                    onConfirm={confirmDelete}
                 />
             )}
 

@@ -49,14 +49,14 @@ export default function Devis({ refreshData, isDarkMode = false, primaryColor = 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [toRemove, setToRemove] = useState(null);
+    const [devisToDelete, setDevisToDelete] = useState(null);
     const [formData, setFormData] = useState(createEmptyForm);
     const [errors, setErrors] = useState({});
     const [notification, showNotification] = useNotification();
 
     const { cardBg, inputBg, field, tableHeaderBg, divideClass, rowHover } = getTheme(isDarkMode);
 
-    const loadAll = () => {
+    const fetchData = () => {
         Promise.all([
             axios.get(api('devis/')),
             axios.get(api('clients/')),
@@ -69,15 +69,15 @@ export default function Devis({ refreshData, isDarkMode = false, primaryColor = 
         }).catch(() => setLoading(false));
     };
 
-    useEffect(() => { loadAll(); }, []);
+    useEffect(() => { fetchData(); }, []);
 
     const getClientName = (id) => {
         const c = clientsList.find(item => String(item.id) === String(id));
         return c ? `${c.nom} ${c.entreprise ? `(${c.entreprise})` : ''}` : `Client #${id}`;
     };
 
-    const visible = devisList.filter(d => getClientName(d.client).toLowerCase().includes(searchTerm.toLowerCase()));
-    const { currentPage, setCurrentPage, currentItems, totalPages } = usePagination(visible, ITEMS_PER_PAGE, searchTerm);
+    const filteredDevis = devisList.filter(d => getClientName(d.client).toLowerCase().includes(searchTerm.toLowerCase()));
+    const { currentPage, setCurrentPage, currentItems, totalPages } = usePagination(filteredDevis, ITEMS_PER_PAGE, searchTerm);
 
     const openModal = (devis = null) => {
         setEditingId(devis ? devis.id : null);
@@ -122,17 +122,17 @@ export default function Devis({ refreshData, isDarkMode = false, primaryColor = 
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const formErrors = validateDevis(formData);
-        setErrors(formErrors);
-        if (hasErrors(formErrors)) return;
+        const validationErrors = validateDevis(formData);
+        setErrors(validationErrors);
+        if (hasErrors(validationErrors)) return;
 
-        const req = editingId
+        const request = editingId
             ? axios.put(api(`devis/${editingId}/`), formData)
             : axios.post(api('devis/'), formData);
 
-        req.then(() => {
+        request.then(() => {
             setIsModalOpen(false);
-            loadAll();
+            fetchData();
             if (refreshData) refreshData();
             showNotification(`Devis ${editingId ? 'mis à jour' : 'créé'} avec succès !`);
         }).catch(() => showNotification("Erreur lors de l'enregistrement.", 'error'));
@@ -146,22 +146,22 @@ export default function Devis({ refreshData, isDarkMode = false, primaryColor = 
         };
         axios.put(api(`devis/${devis.id}/`), payload)
             .then(() => {
-                loadAll();
+                fetchData();
                 showNotification(`Statut changé : ${newStatus}`);
             })
             .catch(() => showNotification('Erreur lors du changement de statut.', 'error'));
     };
 
-    const doDelete = () => {
-        if (!toRemove) return;
-        axios.delete(api(`devis/${toRemove.id}/`))
+    const confirmDelete = () => {
+        if (!devisToDelete) return;
+        axios.delete(api(`devis/${devisToDelete.id}/`))
             .then(() => {
-                setToRemove(null);
-                loadAll();
+                setDevisToDelete(null);
+                fetchData();
                 showNotification('Devis supprimé avec succès !');
             })
             .catch(() => {
-                setToRemove(null);
+                setDevisToDelete(null);
                 showNotification('Suppression impossible : ce devis est déjà facturé.', 'error');
             });
     };
@@ -210,7 +210,7 @@ export default function Devis({ refreshData, isDarkMode = false, primaryColor = 
                                             {d.statut !== 'ACCEPTE' && <button onClick={() => handleStatusChange(d, 'ACCEPTE')} title="Accepter" className={`${actionButton} text-green-500 hover:bg-green-500/10`}><Check size={18} /></button>}
                                             {d.statut !== 'REFUSE' && <button onClick={() => handleStatusChange(d, 'REFUSE')} title="Refuser" className={`${actionButton} text-amber-500 hover:bg-amber-500/10`}><XCircle size={18} /></button>}
                                             <button onClick={() => openModal(d)} title="Modifier" className={`${actionButton} text-blue-500 hover:bg-blue-500/10`}><Edit3 size={18} /></button>
-                                            <button onClick={() => setToRemove(d)} title="Supprimer" className={`${actionButton} text-red-500 hover:bg-red-500/10`}><Trash2 size={18} /></button>
+                                            <button onClick={() => setDevisToDelete(d)} title="Supprimer" className={`${actionButton} text-red-500 hover:bg-red-500/10`}><Trash2 size={18} /></button>
                                         </td>
                                     </tr>
                                 ))}
@@ -224,7 +224,7 @@ export default function Devis({ refreshData, isDarkMode = false, primaryColor = 
                         currentPage={currentPage}
                         setCurrentPage={setCurrentPage}
                         totalPages={totalPages}
-                        totalItems={visible.length}
+                        totalItems={filteredDevis.length}
                         itemsPerPage={ITEMS_PER_PAGE}
                         isDarkMode={isDarkMode}
                     />
@@ -286,13 +286,13 @@ export default function Devis({ refreshData, isDarkMode = false, primaryColor = 
                 </Modal>
             )}
 
-            {toRemove && (
+            {devisToDelete && (
                 <ConfirmDeleteModal
                     title="Supprimer le devis"
-                    name={`Devis #${toRemove.id}`}
+                    name={`Devis #${devisToDelete.id}`}
                     cardBg={cardBg}
-                    onCancel={() => setToRemove(null)}
-                    onConfirm={doDelete}
+                    onCancel={() => setDevisToDelete(null)}
+                    onConfirm={confirmDelete}
                 />
             )}
 

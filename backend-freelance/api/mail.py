@@ -12,6 +12,12 @@ class MailError(Exception):
 
 
 def send_mail(to_email, subject, html, text):
+    """Envoie un email via l'API HTTP de Brevo (Render gratuit bloque le SMTP).
+
+    Variables d'environnement : BREVO_API_KEY, MAIL_FROM (expéditeur validé chez Brevo),
+    MAIL_FROM_NAME (facultatif). Sans BREVO_API_KEY (développement local), le message
+    est simplement affiché dans le terminal.
+    """
     api_key = os.environ.get('BREVO_API_KEY')
     if not api_key:
         print(f"\n=== EMAIL (mode développement) ===\nÀ : {to_email}\nSujet : {subject}\n{text}\n==================================\n")
@@ -40,6 +46,6 @@ def send_mail(to_email, subject, html, text):
     except urllib.error.HTTPError as e:
         logger.error('Brevo HTTP %s : %s', e.code, e.read()[:300])
         raise MailError('Envoi refusé par le fournisseur email.')
-    except Exception as e:
+    except Exception as e:  # réseau, timeout...
         logger.error('Envoi email impossible : %s', e)
         raise MailError('Envoi email impossible.')
