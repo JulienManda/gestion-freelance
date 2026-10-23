@@ -34,7 +34,7 @@ function MainLayout({ user, setUser, onLogout }) {
       fetch(api(path), { headers })
         .then(res => {
           if (res.status === 401) {
-            onLogout(); // session expirée : retour à la connexion
+            onLogout();
             return [];
           }
           return res.json();
@@ -50,7 +50,7 @@ function MainLayout({ user, setUser, onLogout }) {
 
   useEffect(() => {
     loadData();
-    setSidebarOpen(false); // ferme le menu mobile après navigation
+    setSidebarOpen(false);
   }, [location]);
 
   const navClass = ({ isActive }) =>
@@ -74,7 +74,6 @@ function MainLayout({ user, setUser, onLogout }) {
       className={`flex h-dvh font-sans p-2 sm:p-4 gap-4 w-full relative transition-colors duration-300 ${isDarkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-100 text-gray-900'
         }`}
     >
-      {/* FOND SOMBRE DU MENU MOBILE */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
@@ -82,7 +81,6 @@ function MainLayout({ user, setUser, onLogout }) {
         ></div>
       )}
 
-      {/* BARRE LATÉRALE (tiroir sur mobile, fixe sur grand écran) */}
       <aside
         className={`w-64 max-w-[85vw] rounded-3xl flex flex-col p-6 shadow-sm shrink-0 overflow-y-auto transition-all duration-300 fixed top-2 bottom-2 left-2 z-40 sm:top-4 sm:bottom-4 sm:left-4 lg:static lg:z-auto lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-[110%]'} ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white'
           }`}
@@ -215,7 +213,6 @@ function MainLayout({ user, setUser, onLogout }) {
         </nav>
       </aside>
 
-      {/* CONTENU PRINCIPAL */}
       <main
         className={`flex-1 min-w-0 flex flex-col rounded-3xl p-4 sm:p-8 shadow-sm overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 border border-gray-800 text-white' : 'bg-white text-gray-900'
           }`}
@@ -260,7 +257,6 @@ function MainLayout({ user, setUser, onLogout }) {
         </div>
       </main>
 
-      {/* MODALE DE CONFIRMATION DE DÉCONNEXION */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 animate-in fade-in">
           <div

@@ -144,7 +144,6 @@ export default function Auth({ onLogin }) {
             console.error("Erreur d'authentification:", err);
             const data = err.response?.data;
             if (data?.needs_verification) {
-                // Compte créé mais email non confirmé : on bascule vers la saisie du code
                 setFormData({ ...formData, email: data.email || formData.email });
                 goTo('verify');
                 setInfo('Votre email n’est pas encore confirmé. Entrez le code reçu ou renvoyez-en un.');

@@ -33,7 +33,7 @@ class LigneDevisSerializer(serializers.ModelSerializer):
     class Meta:
         model = LigneDevis
         fields = '__all__'
-        extra_kwargs = {'devis': {'required': False}}  # Indispensable pour les écritures imbriquées
+        extra_kwargs = {'devis': {'required': False}}
 
     def validate_service(self, value):
         if value.utilisateur_id != current_user(self).id:
@@ -52,7 +52,7 @@ class DevisSerializer(serializers.ModelSerializer):
     class Meta:
         model = Devis
         fields = ['id', 'client', 'statut', 'date_creation', 'lignes']
-        read_only_fields = ['date_creation']  # Évite les conflits avec auto_now_add=True
+        read_only_fields = ['date_creation']
 
     def validate_client(self, value):
         if value.utilisateur_id != current_user(self).id:
@@ -61,7 +61,7 @@ class DevisSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         lignes_data = validated_data.pop('lignes', [])
-        devis = Devis.objects.create(**validated_data)  # contient « utilisateur » (ajouté par la vue)
+        devis = Devis.objects.create(**validated_data)
         for ligne_data in lignes_data:
             LigneDevis.objects.create(devis=devis, **ligne_data)
         return devis

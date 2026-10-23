@@ -23,12 +23,11 @@ from .mail import send_mail, MailError
 
 
 class OwnedViewSet(viewsets.ModelViewSet):
-    """Chaque utilisateur ne voit et ne modifie que ses propres données."""
     authentication_classes = [SignedTokenAuthentication]
     permission_classes = [IsAuthenticated]
     model = None
-    owner_path = 'utilisateur'  # chemin ORM vers l'utilisateur propriétaire
-    sets_owner = True           # True si le modèle porte directement le champ « utilisateur »
+    owner_path = 'utilisateur'
+    sets_owner = True
 
     def get_queryset(self):
         return self.model.objects.filter(**{self.owner_path: self.request.user})
@@ -76,7 +75,6 @@ class PaiementViewSet(OwnedViewSet):
     sets_owner = False
 
 
-# --- AUTHENTIFICATION : inscription avec code email, mot de passe oublié ---
 
 CODE_VALIDITE_MIN = 10
 CODE_DELAI_RENVOI_S = 60
@@ -105,8 +103,6 @@ def hash_code(email, purpose, code):
 
 
 def password_ok(user, raw):
-    """Vérifie le mot de passe. Les anciens comptes (mot de passe en clair) sont
-    acceptés une dernière fois puis convertis automatiquement en mot de passe haché."""
     stored = user.mot_de_passe or ''
     try:
         identify_hasher(stored)
@@ -120,7 +116,6 @@ def password_ok(user, raw):
 
 
 def issue_code(email, purpose):
-    """Crée et envoie un code. Retourne False si un code a été envoyé il y a moins de 60 s."""
     existing = CodeVerification.objects.filter(email=email, purpose=purpose).first()
     if existing and (timezone.now() - existing.created_at).total_seconds() < CODE_DELAI_RENVOI_S:
         return False
@@ -144,7 +139,6 @@ def issue_code(email, purpose):
 
 
 def check_code(email, purpose, code):
-    """Retourne (ok, message_erreur). Un code est détruit après succès, expiration ou 5 échecs."""
     entry = CodeVerification.objects.filter(email=email, purpose=purpose).first()
     if not entry:
         return False, "Code invalide ou expiré. Demandez un nouveau code."
@@ -184,7 +178,7 @@ def register_view(request):
     if user and user.email_verifie:
         return Response({'error': "Cet email est déjà associé à un compte."}, status=status.HTTP_400_BAD_REQUEST)
 
-    if user:  # inscription précédente jamais confirmée : on la remplace
+    if user:
         user.nom_entreprise, user.nom_admin = nom_entreprise, nom_admin
         user.activite, user.telephone = activite, telephone
         user.mot_de_passe = make_password(mot_de_passe)
@@ -245,7 +239,6 @@ def resend_code_view(request):
 def forgot_password_view(request):
     email = clean_email(request.data.get('email'))
     user = Utilisateur.objects.filter(email__iexact=email).first()
-    # Même réponse que l'email existe ou non, pour ne pas révéler quels comptes existent.
     if user:
         try:
             issue_code(user.email, 'RESET')
@@ -270,7 +263,7 @@ def reset_password_view(request):
     if not ok:
         return Response({'error': msg}, status=status.HTTP_400_BAD_REQUEST)
     user.mot_de_passe = make_password(password)
-    user.email_verifie = True  # recevoir le code prouve que l'email est bien le sien
+    user.email_verifie = True
     user.save(update_fields=['mot_de_passe', 'email_verifie'])
     return Response({'success': True})
 
@@ -330,11 +323,9 @@ def profile_view(request):
         user.save()
         return Response({'success': True, 'user': user_payload(user)})
 
-    # DELETE : suppression définitive du compte et de toutes ses données
     if not password_ok(user, str(request.data.get('password') or '')):
         return Response({'error': 'Mot de passe incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
     with transaction.atomic():
-        # Ordre imposé par les clés RESTRICT (facture -> devis, ligne -> service)
         Paiement.objects.filter(facture__devis__utilisateur=user).delete()
         Facture.objects.filter(devis__utilisateur=user).delete()
         LigneDevis.objects.filter(devis__utilisateur=user).delete()

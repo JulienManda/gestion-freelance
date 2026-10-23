@@ -7,11 +7,8 @@ class Utilisateur(models.Model):
     mot_de_passe = models.CharField(max_length=255)
     activite = models.CharField(max_length=255, blank=True, null=True, default="Community Management & Design")
     telephone = models.CharField(max_length=20, blank=True, null=True)
-    # True par défaut : les comptes déjà existants restent utilisables.
-    # L'inscription crée le compte avec False jusqu'à la saisie du code.
     email_verifie = models.BooleanField(default=True)
 
-    # Attendus par Django REST Framework pour un modèle d'utilisateur personnalisé
     @property
     def is_authenticated(self):
         return True
@@ -27,7 +24,7 @@ class Client(models.Model):
     utilisateur = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='clients', null=True, blank=True)
     nom = models.CharField(max_length=255)
     entreprise = models.CharField(max_length=255, blank=True, null=True)
-    email = models.EmailField()  # unicité vérifiée par utilisateur dans le serializer
+    email = models.EmailField()
     telephone = models.CharField(max_length=20, blank=True, null=True)
 
     class Meta:
@@ -86,8 +83,6 @@ class Paiement(models.Model):
         return f"Paiement {self.montant} - Facture #{self.facture.id}"
 
 class CodeVerification(models.Model):
-    """Code à 6 chiffres envoyé par email (confirmation d'inscription ou mot de passe oublié).
-    Le code n'est jamais stocké en clair : seulement son empreinte (HMAC)."""
     PURPOSE_CHOICES = [
         ('VERIFY', 'Confirmation email'),
         ('RESET', 'Réinitialisation mot de passe'),
